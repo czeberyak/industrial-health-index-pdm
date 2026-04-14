@@ -15,7 +15,7 @@ CONFIG = {
 }
 
 DATA_DIR = '../data/4th_test'
-BEARING_COL = 3 # Анализируем Bearing 1 (колонка 0)
+BEARING_COL = 0 # Анализируем Bearing 1 (колонка 0)
 
 # --- 2. Вспомогательные функции ---
 def get_file_list(directory):

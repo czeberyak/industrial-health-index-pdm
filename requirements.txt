@@ -1,7 +1,24 @@
+# База
 numpy>=1.24.0
 pandas>=2.0.0
 scikit-learn>=1.3.0
 scipy>=1.10.0
-matplotlib>=3.7.0
 joblib>=1.3.0
+
+# Анализ и визуализация
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tqdm>=4.65.0
+
+# Специфические признаки (Wavelets)
+PyWavelets>=1.4.0
+
+# Моделирование
+xgboost>=1.7.0
+torch>=2.0.0
+
+# Интерфейс (Stage 5)
+streamlit>=1.25.0
+
+# Окружение
 jupyter>=1.0.0

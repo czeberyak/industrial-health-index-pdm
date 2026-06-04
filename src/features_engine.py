@@ -11,6 +11,28 @@ from tqdm.notebook import tqdm  # Используем tqdm.notebook для кр
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import StandardScaler
+
+
+'''
+Функция get_signal_stats: Она берет массив «сырых» данных вибрации и вычисляет 12 различных математических характеристик (признаков).  
+
+Временные признаки: RMS (мощность), Kurtosis (наличие резких ударов), Crest factor (пиковость) и другие.  
+
+Частотные признаки: С помощью преобразования Фурье (rfft) она смотрит, на каких частотах «звенит» подшипник (низкие, средние или высокие частоты).  
+
+Функция extract_advanced_features: Это цикл, который заходит в каждый файл из папки с данными, читает его, отправляет данные в первую функцию и собирает результаты в одну большую таблицу (DataFrame).  
+
+Блок расчета Ratio: В конце код создает относительный показатель износа, сравнивая вибрацию каждого подшипника со средним значением по группе.
+'''
+
+'''
+Инструкции по использованию
+Настройка частоты: В функции get_signal_stats параметр fs=20000 (20 кГц) должен строго соответствовать настройкам твоего оборудования.  
+
+Путь к данным: Убедись, что переменная data_path указывает на папку, где лежат текстовые файлы NASA (например, 2nd_test).  
+
+Библиотеки: Тебе нужно установить scipy и tqdm (pip install scipy tqdm), иначе код выдаст ошибку.
+'''
 # --- 1. ФУНКЦИИ ИЗВЛЕЧЕНИЯ ПРИЗНАКОВ ---
 
 def get_signal_stats(sig: np.ndarray, fs: int = 20000) -> Dict[str, float]:
@@ -85,6 +107,38 @@ print(f"Готово! Извлечено признаков для {len(df_featu
 
 # Рассчитываем медиану RMS для каждого момента времени
 df_features['rms_median'] = df_features[['b1_rms', 'b2_rms', 'b3_rms', 'b4_rms']].median(axis=1)
+
+# --- Вставь определение функции перед разделом запуска ---
+
+def convert_to_operating_time(df, threshold=0.02):
+    """Схлопывает простои и пересчитывает время в моточасы."""
+    # Оставляем только рабочие интервалы
+    df_active = df[df['rms_median'] > threshold].copy()
+    
+    # Считаем разницу во времени между файлами
+    df_active['time_diff'] = df_active['timestamp'].diff().dt.total_seconds().fillna(600)
+    
+    # Если разрыв > 1 часа, считаем его как 10-минутный шаг
+    df_active.loc[df_active['time_diff'] > 3600, 'time_diff'] = 600
+    
+    # Накапливаем часы наработки
+    df_active['op_hours'] = df_active['time_diff'].cumsum() / 3600.0
+    return df_active
+
+# --- В блоке исполнения (внизу файла) ---
+
+# 1. Извлекаем признаки
+df_features = extract_advanced_features(data_path)
+
+# 2. Сначала считаем rms_median (он нужен для фильтрации простоя)
+rms_cols = [c for c in df_features.columns if 'rms' in c]
+df_features['rms_median'] = df_features[rms_cols].median(axis=1)
+
+# 3. ПРИМЕНЯЕМ ПЕРЕСЧЕТ ВРЕМЕНИ (ВСТАВИТЬ ТУТ)
+df_features = convert_to_operating_time(df_features)
+
+# 4. Теперь считаем остальные индексы уже на очищенных данных
+df_features['b1_rms_ratio'] = df_features['b1_rms'] / df_features['rms_median']
 
 # Создаём отношения для всех подшипников
 for i in range(1, 5):

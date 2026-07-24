@@ -59,7 +59,8 @@ def get_signal_stats(sig: np.ndarray, fs: int = 20_000) -> Dict[str, float]:
     freqs = rfftfreq(len(sig), 1 / fs)
     sum_fft = np.sum(abs_fft)
 
-    stats["dom_freq"] = freqs[np.argmax(abs_fft)]
+    # stats["dom_freq"] = freqs[np.argmax(abs_fft)]  # было
+    stats["dom_freq"] = freqs[1:][np.argmax(abs_fft[1:])]  # исключаем DC-бин из поиска
     stats["spec_centroid"] = np.sum(freqs * abs_fft) / sum_fft if sum_fft > 1e-9 else 0.0
     stats["band_0_2k"] = np.sum(abs_fft[(freqs >= 0) & (freqs < 2000)])
     stats["band_2_5k"] = np.sum(abs_fft[(freqs >= 2000) & (freqs < 5000)])
@@ -124,7 +125,11 @@ def main() -> None:
     args = parser.parse_args()
 
     data_path = Path(args.data_path)
-    out_path = Path(args.out) if args.out else Path(f"{data_path.name}_features.pkl")
+    # По умолчанию — рядом со скриптом (Path(__file__).parent), а не в cwd на момент
+    # запуска: раньше `python src/features_engine.py ...`, вызванный из разных папок,
+    # мог тихо положить кэш не туда, откуда его читает ноутбук.
+    default_out = Path(__file__).parent / f"{data_path.name}_features.pkl"
+    out_path = Path(args.out) if args.out else default_out
     _build_cache(data_path, out_path)
 
 
